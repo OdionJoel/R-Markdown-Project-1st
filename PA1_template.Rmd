@@ -1,0 +1,169 @@
+---
+title: "R Markdown Project"
+author: "Okonofua Odion Joel"
+date: "2024-01-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Project Overview
+
+This project involves the analysis of data from a personal activity monitoring device. The dataset spans two months, October and November 2012, and includes information about the number of steps taken in 5-minute intervals each day.
+
+The primary objectives of the analysis include:
+
+1. Exploratory Data Analysis (EDA) to understand the structure and characteristics of the dataset.
+2. Investigation of daily step patterns, including the creation of histograms to visualize the total number of steps taken each day.
+3. Calculation of daily mean and median steps.
+4. Time series analysis to observe trends in the average number of steps taken.
+5. Identification of the 5-minute interval with the highest average number of steps.
+6. Handling missing data through imputation strategies.
+7. Comparison of steps taken per 5-minute interval across weekdays and weekends.
+
+The analysis will be conducted using R and R Markdown, providing a reproducible and well-documented workflow.
+
+# Dataset Description
+
+The dataset includes the following variables:
+
+- `steps`: Number of steps taken in a 5-minute interval (missing values are coded as NA).
+- `date`: The date on which the measurement was taken in YYYY-MM-DD format.
+- `interval`: Identifier for the 5-minute interval.
+
+# Getting Started
+
+To begin the analysis, follow the steps below:
+
+1. Load the necessary libraries.
+2. Read in the dataset.
+3. Explore the structure of the data.
+4. Check for missing values.
+
+Let's get started with the R code for these steps.
+
+
+### Code for Reading in the Dataset and/or Processing the Data
+```{r include=TRUE, echo=TRUE}
+# Set the working directory
+setwd("C:/Users/Dell/Desktop/couersera/DS r prog/r markdown project")
+library(readr)
+act <- read.csv("activity.csv")
+act$date <- as.Date(act$date)
+p <- as.POSIXct(as.Date(act$date))
+d <- unclass(as.POSIXlt(act$date))
+act$yday <- d$yday
+head(act)
+```
+
+### Histogram of the total number of steps taken each day
+
+
+```{r include=TRUE, echo=TRUE}
+steps_dist <- tapply(act$steps, act$yday, sum)
+steps_dist
+hist(steps_dist, breaks = 10, main = "number of steps taken daily", xlab = "number of steps")
+```
+
+### Mean and median number of steps taken each day
+
+
+```{r include=TRUE, echo=TRUE}
+mean_steps <- mean(steps_dist, na.rm = TRUE)
+median_steps <- median(steps_dist, na.rm = TRUE)
+cat("Mean steps per day:", mean_steps, "\n")
+cat("Median steps per day:", median_steps, "\n")
+```
+
+
+### Time series plot of the average number of steps taken
+
+```{r include=TRUE, echo=TRUE}
+mean_steps <- tapply(act$steps, act$interval, mean, na.rm = TRUE)
+head(mean_steps)
+plot(mean_steps,type ="l")
+```
+
+
+### The 5-minute interval that, on average, contains the maximum number of steps
+```{r include=TRUE, echo=TRUE}
+max_mean_interval <- names(mean_steps)[which.max(mean_steps)]
+print(max_mean_interval)
+```
+
+
+### Code to describe and show a strategy for imputing missing data
+```{r include=TRUE, echo=TRUE}
+sum(is.na(act$steps))
+imputed_data <- act
+for (i in 1:length(imputed_data$steps)) {
+  if (is.na(imputed_data$steps[i])) {
+    imputed_data$steps[i] <- mean_steps[as.character(imputed_data$interval[i])]
+  }
+}
+head(imputed_data)
+```
+
+### Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r include=TRUE, echo=TRUE}
+imputed_data_dist <- tapply(imputed_data$steps, imputed_data$yday, sum)
+imputed_data_dist
+hist(imputed_data_dist, breaks = 10, main = "number of steps taken daily", xlab = "number of steps", ylim = c(0,25))
+mean_imputed_data_dist <- mean(imputed_data_dist, na.rm = TRUE)
+median_imputed_data_dist <- median(imputed_data_dist, na.rm = TRUE)
+cat("Mean steps per day:", mean_imputed_data_dist, "\n")
+cat("Median steps per day:", median_imputed_data_dist, "\n")
+```
+Do these values above differ from the estimates from the first part of the assignment? Yes they do!
+The impact of imputing missing data on the estimates of the total daily number of steps is, It made the mean and median are the same, it indicates that the distribution of values is symmetric. In a symmetric distribution, the values are evenly distributed on both sides of the center point, which is where the mean and median are located. This implies that the dataset has a balanced distribution.
+
+
+### Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r include=TRUE, echo=TRUE}
+imputed_data$wday<- weekdays(p)
+for (i in 1:length(imputed_data$steps))
+  {
+    if(imputed_data$wday[i]=="Saturday"|imputed_data$wday[i]=="Sunday")
+      {
+          imputed_data$day[i] <- "weekend"
+      } else  
+      {
+          imputed_data$day[i] <- "weekday"
+      }
+}
+head(imputed_data)
+table(imputed_data$day)
+```
+
+
+
+
+```{r include=TRUE, echo=TRUE}
+# Install ggplot2 if not already installed
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2")
+}
+
+# Load the ggplot2 package
+library(ggplot2)
+```
+
+
+
+
+
+
+```{r include=TRUE, echo=TRUE}
+imputed_data.day<- aggregate(steps~interval+day, imputed_data,mean, na.rm =TRUE)
+ggplot(imputed_data.day, aes(x = interval, y = steps, color = day))+ geom_line() + labs(title = "Average daily steps by date type", x = "5 mins Interval", y = "Average number of steps") + facet_wrap(~day, ncol = 1, nrow = 2)
+```
+
+On weekdays, there is a noticeable peak in step count around 8:00 a.m., exceeding 200 steps. In contrast, during weekends, step counts drop below 200 at this peak hour. However, weekends generally exhibit higher average activity levels throughout the rest of the day.
+
+
+
+
